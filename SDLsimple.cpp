@@ -1,7 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <iostream>
-#include <string>
+#include <vector>
 
 //define some constants
 #define WINDOW_TITLE "Simple Test Game"
@@ -14,7 +14,13 @@
 #define GREEN 0, 255, 0, 255
 #define BLUE 0, 0, 255, 255
 
-class Button {
+class InterfaceObject{
+public:
+    virtual void render(SDL_Renderer* renderer, SDL_Color bgColor, SDL_Color fgColor, TTF_Font* font) const = 0;
+    virtual ~InterfaceObject() {}
+};
+
+class Button  : public InterfaceObject{
 public:
     Button(int x, int y, int w, int h, const std::string& text) : x(x), y(y), w(w), h(h), text(text) {}
 
@@ -23,7 +29,7 @@ public:
     }
 
     void render(SDL_Renderer* renderer, SDL_Color bgColor, SDL_Color fgColor, TTF_Font* font) const {
-        SDL_Rect rect = { x, y, w, h };
+        /*SDL_Rect rect = { x, y, w, h };
         SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
         SDL_RenderFillRect(renderer, &rect);
         SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), fgColor);
@@ -31,7 +37,7 @@ public:
         SDL_Rect textRect = { x + (w - surface->w) / 2, y + (h - surface->h) / 2, surface->w, surface->h };
         SDL_RenderCopy(renderer, texture, nullptr, &textRect);
         SDL_FreeSurface(surface);
-        SDL_DestroyTexture(texture);
+        SDL_DestroyTexture(texture);*/
     }
 
 private:
@@ -75,21 +81,21 @@ public:
                 }
             }
 
-            //Clear screen
-			SDL_SetRenderDrawColor(renderer, WHITE);
-			SDL_RenderClear(renderer);
+            //render all InterfaceObjects
+            SDL_SetRenderDrawColor(renderer, WHITE);
+            SDL_RenderClear(renderer);
 
-			//Render red filled quad
-			SDL_Rect fillRect = { 240, 190, 100, 100 };
-			SDL_SetRenderDrawColor(renderer, RED);
-			SDL_RenderFillRect(renderer, &fillRect);
+            for (const auto& object : interfaceObjects) {
+                object->render(renderer, {GREEN}, {BLACK}, font);
+            }
 
-			//Render green outlined quad
-			SDL_Rect outlineRect = { 240, 190, 100, 100 };
-			SDL_SetRenderDrawColor(renderer, GREEN);
-			SDL_RenderDrawRect(renderer, &outlineRect);
             SDL_RenderPresent(renderer);
         }
+    }
+    
+    //add an InterfaceObject to the list of objects to render
+    void addInterfaceObject(InterfaceObject* object) {
+        interfaceObjects.push_back(object);
     }
 
     void cleanup() {
@@ -103,6 +109,8 @@ private:
     ~GameEngine() {}
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
+    TTF_Font* font = TTF_OpenFont("arial.ttf", 20);
+    std::vector<InterfaceObject*> interfaceObjects;
 };
 
 int main(int argc, char* argv[]) {
@@ -112,6 +120,7 @@ int main(int argc, char* argv[]) {
     }
     
     Button button(100, 100, 200, 50, "Click Me");
+    engine.addInterfaceObject(&button);
     
     engine.run();
     engine.cleanup();
