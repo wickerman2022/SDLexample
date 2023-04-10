@@ -7,12 +7,37 @@
 #define WINDOW_TITLE "Simple Test Game"
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
+
+#define STARTING_MONEY 1000
+#define MAX_MONEY 1000000
 //define some colors r, g, b, a
 #define WHITE 255, 255, 255, 255
 #define BLACK 0, 0, 0, 255
 #define RED 255, 0, 0, 255
 #define GREEN 0, 255, 0, 255
 #define BLUE 0, 0, 255, 255
+
+class GameObject
+{
+public:
+    virtual void Update(double dt) = 0;
+    virtual void Render() = 0;
+    virtual ~GameObject() {}
+};
+
+class Player: public GameObject
+{
+public:
+    Player(){ money = STARTING_MONEY; score = 0;};
+
+    virtual void Update(double dt) {};
+    virtual void Render() {};
+    void EarnMoney(int amount) { money += amount; if (money >= MAX_MONEY) money = MAX_MONEY;};
+    void SpendMoney(int amount) {if (money >= amount) money -= amount;};
+private:
+    int money; // Amount of money
+    int score; // Score
+};
 
 class InterfaceObject{
 public:
@@ -92,7 +117,7 @@ public:
             std::cerr << "SDL renderer creation failed: " << SDL_GetError() << std::endl;
             return false;
         }
-        font = TTF_OpenFont("arial.ttf", 24);
+        font = TTF_OpenFont("/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf", 24);
         if (font == nullptr) {
             std::cerr << "Failed to load font: " << TTF_GetError() << std::endl;
             return false;
@@ -153,6 +178,8 @@ int main(int argc, char* argv[]) {
     
     Button button(100, 100, 200, 50, "Click Me");
     engine.addInterfaceObject(&button);
+    
+    std::unique_ptr<Player> player(new Player());
     
     engine.run();
     engine.cleanup();
