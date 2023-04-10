@@ -17,6 +17,7 @@
 class InterfaceObject{
 public:
     virtual void render(SDL_Renderer* renderer, SDL_Color bgColor, SDL_Color fgColor, TTF_Font* font) const = 0;
+    virtual void update() = 0;
     virtual ~InterfaceObject() {}
 };
 
@@ -28,16 +29,35 @@ public:
         return mx >= x && mx < x + w && my >= y && my < y + h;
     }
 
+    void update() override {
+        int mx, my;
+        SDL_GetMouseState(&mx, &my);
+        if (contains(mx, my)) {
+            std::cout << "Mouse is over button" << std::endl;
+        }
+    }
+    
     void render(SDL_Renderer* renderer, SDL_Color bgColor, SDL_Color fgColor, TTF_Font* font) const {
-        /*SDL_Rect rect = { x, y, w, h };
+        SDL_Rect rect = { x, y, w, h };
         SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
         SDL_RenderFillRect(renderer, &rect);
+
         SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), fgColor);
+        if (surface == nullptr) {
+            std::cerr << "Failed to create text surface: " << TTF_GetError() << std::endl;
+        }
+
         SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+        if (texture == nullptr) {
+            std::cerr << "Failed to create texture from surface: " << SDL_GetError() << std::endl;
+            SDL_FreeSurface(surface);
+        }
+
         SDL_Rect textRect = { x + (w - surface->w) / 2, y + (h - surface->h) / 2, surface->w, surface->h };
         SDL_RenderCopy(renderer, texture, nullptr, &textRect);
+
+        SDL_DestroyTexture(texture);
         SDL_FreeSurface(surface);
-        SDL_DestroyTexture(texture);*/
     }
 
 private:
@@ -58,6 +78,10 @@ public:
             std::cerr << "SDL initialization failed: " << SDL_GetError() << std::endl;
             return false;
         }
+        if (TTF_Init() != 0) {
+            std::cerr << "SDL_ttf initialization failed: " << TTF_GetError() << std::endl;
+            return false;
+        }
         window = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
         if (window == nullptr) {
             std::cerr << "SDL window creation failed: " << SDL_GetError() << std::endl;
@@ -68,20 +92,17 @@ public:
             std::cerr << "SDL renderer creation failed: " << SDL_GetError() << std::endl;
             return false;
         }
+        font = TTF_OpenFont("arial.ttf", 24);
+        if (font == nullptr) {
+            std::cerr << "Failed to load font: " << TTF_GetError() << std::endl;
+            return false;
+        }
         return true;
     }
 
     void run() {
         bool quit = false;
-        SDL_Event event;
-        while (!quit) {
-            while (SDL_PollEvent(&event)) {
-                if (event.type == SDL_QUIT) {
-                    quit = true;
-                }
-            }
-
-            //render all InterfaceObjects
+        //render all InterfaceObjects
             SDL_SetRenderDrawColor(renderer, WHITE);
             SDL_RenderClear(renderer);
 
@@ -90,6 +111,17 @@ public:
             }
 
             SDL_RenderPresent(renderer);
+        SDL_Event event;
+        while (!quit) {
+            while (SDL_PollEvent(&event)) {
+                if (event.type == SDL_QUIT) {
+                    quit = true;
+                }
+            }
+			for (const auto& object : interfaceObjects) {
+                object->update();
+            }
+
         }
     }
     
@@ -109,7 +141,7 @@ private:
     ~GameEngine() {}
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
-    TTF_Font* font = TTF_OpenFont("arial.ttf", 20);
+    TTF_Font* font = nullptr;
     std::vector<InterfaceObject*> interfaceObjects;
 };
 
