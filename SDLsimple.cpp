@@ -2,6 +2,7 @@
 #include <SDL2/SDL_ttf.h>
 #include <iostream>
 #include <vector>
+#include <memory>
 
 //define some constants
 #define WINDOW_TITLE "Simple Test Game"
@@ -21,7 +22,6 @@ class GameObject
 {
 public:
     virtual void Update(double dt) = 0;
-    virtual void Render() = 0;
     virtual ~GameObject() {}
 };
 
@@ -30,6 +30,7 @@ class Player: public GameObject
 public:
     Player(){ money = STARTING_MONEY; score = 0;};
 
+    //Other methods
     virtual void Update(double dt) {};
     virtual void Render() {};
     void EarnMoney(int amount) { money += amount; if (money >= MAX_MONEY) money = MAX_MONEY;};
@@ -88,6 +89,28 @@ public:
 private:
     int x, y, w, h;
     std::string text;
+};
+
+class Menu : public InterfaceObject {
+public:
+    void addButton(std::shared_ptr<Button> button) {
+        buttons.push_back(button);
+    }
+
+    void render(SDL_Renderer* renderer, SDL_Color bgColor, SDL_Color fgColor, TTF_Font* font) const override {
+        for (const auto& button : buttons) {
+            button->render(renderer, bgColor, fgColor, font);
+        }
+    }
+
+    void update() override {
+        for (const auto& button : buttons) {
+            button->update();
+        }
+    }
+
+private:
+    std::vector<std::shared_ptr<Button>> buttons;
 };
 
 //Singleton class
@@ -151,7 +174,7 @@ public:
     }
     
     //add an InterfaceObject to the list of objects to render
-    void addInterfaceObject(InterfaceObject* object) {
+    void addInterfaceObject(std::shared_ptr<InterfaceObject> object) {
         interfaceObjects.push_back(object);
     }
 
@@ -167,7 +190,7 @@ private:
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
     TTF_Font* font = nullptr;
-    std::vector<InterfaceObject*> interfaceObjects;
+    std::vector<std::shared_ptr<InterfaceObject>> interfaceObjects;
 };
 
 int main(int argc, char* argv[]) {
@@ -176,8 +199,14 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     
-    Button button(100, 100, 200, 50, "Click Me");
-    engine.addInterfaceObject(&button);
+    auto button1 = std::make_shared<Button>(100, 100, 200, 50, "Button 1");
+    auto button2 = std::make_shared<Button>(100, 200, 200, 50, "Button 2");
+    
+    auto menu = std::make_shared<Menu>();
+    menu->addButton(button1);
+    menu->addButton(button2);
+    
+    engine.addInterfaceObject(menu);
     
     std::unique_ptr<Player> player(new Player());
     
@@ -185,4 +214,3 @@ int main(int argc, char* argv[]) {
     engine.cleanup();
     return 0;
 }
-
